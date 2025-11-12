@@ -1,0 +1,16 @@
+data/*
+data/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzz
+submission.csv
+train.zip
+test.zip
+challenge/
+challenge/*

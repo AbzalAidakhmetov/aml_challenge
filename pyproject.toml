@@ -1,0 +1,19 @@
+[project]
+name = "baseline-notebook-env"
+version = "0.1.0"
+description = "Environment to run baseline.ipynb"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "tqdm>=4.66",
+    "torch>=2.2",
+    "gdown",
+    "pandas",
+    "matplotlib"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "jupyterlab>=4.0",
+    "ipykernel>=6.29"
+]
