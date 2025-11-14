@@ -17,15 +17,15 @@ from src.common import generate_submission, load_data, prepare_train_data
 MODEL_PATH = "models/mlp_baseline_mrr_best_loss.pth"
 MODEL_PATH_MRR = "models/mlp_baseline_mrr_best_mrr.pth"
 SUBMISSION_PATH = "submission_mrr.csv"
-EPOCHS = 100
-BATCH_SIZE = 2048
+EPOCHS = 50
+BATCH_SIZE = 1024 * 3
 LR = 0.001
 VAL_RATIO = 0.1
 RANDOM_SEED = 42
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Loss / contrastive configuration
-LAMBDA_REG = 1.0
+LAMBDA_REG = 0
 LAMBDA_NCE_MAX = 1
 LAMBDA_NCE_WARMUP_EPOCHS = 1
 INFO_NCE_TAU = 0.01
@@ -117,9 +117,9 @@ def build_image_index_groups(image_ids: torch.Tensor) -> list[list[int]]:
 def estimate_captions_per_image(image_ids: torch.Tensor) -> int:
     unique_ids, counts = torch.unique(image_ids, return_counts=True)
     if counts.numel() == 0:
-        return 1
+        raise ValueError("No image ids found")
     avg = torch.round(counts.float().mean()).item()
-    return max(1, int(avg))
+    return int(avg)
 
 
 class ImageGroupedBatchSampler(Sampler[list[int]]):
