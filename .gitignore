@@ -15,3 +15,14 @@ test.zip
 challenge/
 challenge/*
 models/*
+*.zip
+*.csv
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+*.webp
+*.svg
