@@ -17,9 +17,9 @@ from src.common import generate_submission, load_data, prepare_train_data
 MODEL_PATH = "models/mlp_baseline_mrr_best_loss.pth"
 MODEL_PATH_MRR = "models/mlp_baseline_mrr_best_mrr.pth"
 SUBMISSION_PATH = "submission_mrr.csv"
-EPOCHS = 50
-BATCH_SIZE = 1024 * 3
-LR = 0.001
+EPOCHS = 500
+BATCH_SIZE = 1024 * 4
+LR = 3e-4
 VAL_RATIO = 0.1
 RANDOM_SEED = 42
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -27,12 +27,12 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Loss / contrastive configuration
 LAMBDA_REG = 0
 LAMBDA_NCE_MAX = 1
-LAMBDA_NCE_WARMUP_EPOCHS = 1
+LAMBDA_NCE_WARMUP_EPOCHS = 0
 INFO_NCE_TAU = 0.01
 
 
 class MLP(nn.Module):
-    def __init__(self, input_dim=1024, output_dim=1536, hidden_dim=2048):
+    def __init__(self, input_dim=1024, output_dim=1536, hidden_dim=3072):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
@@ -378,6 +378,8 @@ def main():
     seed_everything(RANDOM_SEED)
     print("1. Loading training data...")
     train_data = load_data("data/train/train.npz")
+    # NOTE: using filtered data for training
+    # train_data = load_data("data/filtered/train_clean_top50.npz")
     X, y, label = prepare_train_data(train_data)
     print(f"   Captions: {len(X):,} | Images: {label.shape[1]:,}")
 

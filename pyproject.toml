@@ -9,7 +9,8 @@ dependencies = [
     "torch>=2.2",
     "gdown",
     "pandas",
-    "matplotlib"
+    "matplotlib",
+    "seaborn"
 ]
 
 [tool.uv]
