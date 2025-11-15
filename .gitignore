@@ -9,12 +9,13 @@ __pycache__/
 *.pyz
 *.pywz
 *.pyzz
-submission.csv
 train.zip
 test.zip
 challenge/
 challenge/*
-models/*
+models/*.pth
+models/hpsearch/*
+models/*.json
 *.zip
 *.csv
 *.png
