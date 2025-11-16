@@ -7,8 +7,7 @@ Minimal starter for the AML image–text retrieval task: preprocess captions/ima
 **Hardware**: 1× RTX 3060 (12 GB VRAM), 16 GB RAM, 40 GB disk (rented from vast.ai)
 
 1. Download the AML image–text retrieval data so that raw files live under `data/train/` (`train.npz`, `Images/`, etc.). All paths referenced below are relative to the repo root.
-2. (Optional) Place any pretrained checkpoints you already have under `models/` if you want to skip the baseline training step.
-3. Create the Python environment plus dependencies:
+2. Create the Python environment plus dependencies:
 
 ```bash
 bash setup.sh
