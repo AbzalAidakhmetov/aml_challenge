@@ -20,12 +20,12 @@ MODEL_PATH_MRR = "models/mlp_baseline_mrr_best_mrr.pth"
 MODEL_PATH_RECALL1 = "models/mlp_baseline_mrr_best_recall1.pth"
 MODEL_PATH_RECALL5 = "models/mlp_baseline_mrr_best_recall5.pth"
 MODEL_PATH_RECALL10 = "models/mlp_baseline_mrr_best_recall10.pth"
-SUBMISSION_PATH = "submission_mrr_bs_5k_seed_100002.csv"
+SUBMISSION_PATH = "submission_mrr_baseline.csv"
 EPOCHS = 300
 BATCH_SIZE = 1024 * 5
 LR = 3e-4
 VAL_RATIO = 0.1
-RANDOM_SEED = 100002
+RANDOM_SEED = 42
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Loss / contrastive configuration
@@ -416,9 +416,9 @@ def train_model(
 def main():
     seed_everything(RANDOM_SEED)
     print("1. Loading training data...")
-    # train_data = load_data("data/train/train.npz")
+    train_data = load_data("data/train/train.npz")
     # NOTE: using filtered data for training
-    train_data = load_data("data/filtered/train_clip_q0.10_from_raw.npz")
+    # train_data = load_data("data/filtered/train_clip_q0.10_from_raw.npz")
     X, y, label = prepare_train_data(train_data)
     print(f"   Captions: {len(X):,} | Images: {label.shape[1]:,}")
 

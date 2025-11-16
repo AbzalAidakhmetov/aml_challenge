@@ -9,13 +9,15 @@ bash setup.sh
 ```
 
 ## Workflow
-
-1. **CLIP filtering**  
-   `python -m src.clip_filter_pairs   --input-npz data/train/train.npz   --images-root data/train/Images   --output-npz data/filtered/train_clip_q0.10_from_raw.npz   --scores-output data/filtered/train_clip_scores_raw.npy   --drop-fraction 0.10`
-
-2. **Train & submit**  
-   `python train_mrr.py`  
-   Saves checkpoints in `models/` and a submission CSV (`submission_mrr_bs_5k_seed_100002.csv`).
+1. **Baseline run**
+   - Execute `python train_mrr.py` on the raw dataset to establish the baseline model, that will be further used in `visualize_split_top_50.ipynb` for splitting.
+2. **Dataset preparation**
+   - *Method 1 – Top‑k filtering*: run `visualize_split_top_50.ipynb` (after the baseline model is availabel) to review captions per image, keep the strongest pairs, and export the filtered NPZ.
+   - *Method 2 – CLIP filtering*:  
+     `python -m src.clip_filter_pairs --input-npz data/train/train.npz --images-root data/train/Images --output-npz data/filtered/train_clip_q0.10_from_raw.npz --scores-output data/filtered/train_clip_scores_raw.npy --drop-fraction 0.10`
+3. **Train & submit**
+   - Re-run `python train_mrr.py` on the filtered dataset.
+   - Checkpoints land in `models/` and the submission CSV defaults to `submission_mrr_baseline.csv`.
 
 ## Key Files
 
