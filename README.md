@@ -7,12 +7,18 @@ Minimal starter for the AML image–text retrieval task: preprocess captions/ima
 ```bash
 bash setup.sh 
 ```
+## To reproduce our results
+Just running `run.sh` should do everything in the **workflow** below.
+
+```bash
+bash run.sh
+```
 
 ## Workflow
 1. **Baseline run**
-   - Execute `python train_mrr.py` on the raw dataset to establish the baseline model, that will be further used in `visualize_split_top_50.ipynb` for splitting.
+   - Execute `python train_mrr.py` on the raw dataset to establish the baseline model, that will be further used in `topk_filter_pairs.py` for splitting.
 2. **Dataset preparation**
-   - *Method 1 – Top‑k filtering*: run `visualize_split_top_50.ipynb` (after the baseline model is availabel) to review captions per image, keep the strongest pairs, and export the filtered NPZ.
+   - *Method 1 – Top‑k filtering*: run `topk_filter_pairs.py` (after the baseline model is availabel) to review captions per image, keep the strongest pairs, and export the filtered NPZ.
    - *Method 2 – CLIP filtering*:  
      `python -m src.clip_filter_pairs --input-npz data/train/train.npz --images-root data/train/Images --output-npz data/filtered/train_clip_q0.10_from_raw.npz --scores-output data/filtered/train_clip_scores_raw.npy --drop-fraction 0.10`
 3. **Train Models for Ensemble**
@@ -32,6 +38,7 @@ bash setup.sh
 | File | Purpose |
 | --- | --- |
 | `src/clip_filter_pairs.py` | OpenCLIP scoring + dataset pruning. |
+| `topk_filter_pairs.py` | Top-k filtering based on baseline model predictions. |
 | `train_mrr.py` | Residual MLP + InfoNCE baseline, grouped batches, submission export. |
 | `train_mrr_hpp_tunning_RandSearch.py` | Randomized HPO driver (logs to `hpsearch_results.csv`, checkpoints under `models/hpsearch/`). |
 | `train_mrr_Ensemble_old_dataset.py` | Multi-seed training (11 seeds) on the original raw dataset. |
@@ -47,8 +54,8 @@ The table below lists all trained models, their seeds, validation MRR, and wheth
 
 | # | Script                                                      | Seed  | Dataset / Config                     | Val MRR | In 16-seed ensemble? |
 |---|-------------------------------------------------------------|:-----:|--------------------------------------|:-------:|:--------------------:|
-| 1 | `train_mrr_Ensemble_old_dataset.py`                         | 42    | Old dataset                          | None    | ✓                    |
-| 2 | `train_mrr_Ensemble_old_dataset.py`                         | 1337  | Old dataset                          | None    | ✓                    |
+| 1 | `train_mrr_Ensemble_old_dataset.py`                         | 42    | Old dataset                          | N/A     | ✓                    |
+| 2 | `train_mrr_Ensemble_old_dataset.py`                         | 1337  | Old dataset                          | N/A     | ✓                    |
 | 3 | `train_mrr_Ensemble_old_dataset.py`                         | 2025  | Old dataset                          | 0.568535| ✓                    |
 | 4 | `train_mrr_Ensemble_old_dataset.py`                         | 31415 | Old dataset                          | 0.578568| ✓                    |
 | 5 | `train_mrr_Ensemble_old_dataset.py`                         | 123456| Old dataset                          | 0.554589| ✓                    |
@@ -64,7 +71,7 @@ The table below lists all trained models, their seeds, validation MRR, and wheth
 | 15| `train_mrr_Ensemble_new_dataset_CLIP.py`                    | 4096  | CLIP-filtered                        | 0.598578| ✗                    |
 | 16| `train_mrr_Ensemble_new_dataset_CLIP.py`                    | 8888  | CLIP-filtered                        | 0.598682| ✗                    |
 | 17| `train_mrr_Ensemble_new_dataset_CLIP.py`                    | 1234  | CLIP-filtered                        | 0.600019| ✗                    |
-| 18| `train_mrr_Ensemble_new_dataset_CLIP_AdamW_5_batches.py`    | 42    | CLIP-filtered, bs=5000, AdamW        | 0.594952| ✓                    |
+| 18| `train_mrr_Ensemble_new_dataset_CLIP_AdamW_5_batches.py`    | 42 (Saved as 404)   | CLIP-filtered, bs=5000, AdamW        | 0.594952| ✓                    |
 | 19| `train_mrr_Ensemble_new_dataset_CLIP_AdamW_5_batches.py`    | 322   | CLIP-filtered, bs=5000, AdamW        | 0.595863| ✓                    |
 | 20| `train_mrr_Ensemble_new_dataset_CLIP_AdamW_5_batches.py`    | 323   | CLIP-filtered, bs=5000, AdamW        | 0.586454| ✗                    |
 | 21| `train_mrr_Ensemble_new_dataset_CLIP_AdamW_5_batches.py`    | 10000 | CLIP-filtered, bs=5000, AdamW        | 0.593430| ✗                    |

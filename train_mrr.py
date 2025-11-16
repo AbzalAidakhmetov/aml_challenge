@@ -1,4 +1,3 @@
-import math
 import random
 from pathlib import Path
 from typing import Tuple
@@ -17,15 +16,12 @@ from src.common import generate_submission, load_data, prepare_train_data
 # Configuration
 MODEL_PATH = "models/mlp_baseline_mrr_best_loss.pth"
 MODEL_PATH_MRR = "models/mlp_baseline_mrr_best_mrr.pth"
-MODEL_PATH_RECALL1 = "models/mlp_baseline_mrr_best_recall1.pth"
-MODEL_PATH_RECALL5 = "models/mlp_baseline_mrr_best_recall5.pth"
-MODEL_PATH_RECALL10 = "models/mlp_baseline_mrr_best_recall10.pth"
 SUBMISSION_PATH = "submission_mrr_baseline.csv"
-EPOCHS = 300
-BATCH_SIZE = 1024 * 5
+EPOCHS = 500
+BATCH_SIZE = 1024 * 4
 LR = 3e-4
 VAL_RATIO = 0.1
-RANDOM_SEED = 42
+RANDOM_SEED = 43
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Loss / contrastive configuration
@@ -231,14 +227,11 @@ def compute_global_mrr(
     val_loader: DataLoader,
     device: torch.device,
     chunk_size: int = 4096,
-) -> dict[str, float]:
+) -> float:
     model.eval()
     caption_preds = []
     caption_image_ids = []
     image_latent_dict: dict[int, torch.Tensor] = {}
-    recall_targets = (1, 5, 10)
-    recall_hits: dict[int, list[torch.Tensor]] = {k: [] for k in recall_targets}
-    reciprocal_ranks: list[torch.Tensor] = []
 
     for text_embeds, image_latents, image_ids in val_loader:
         text_embeds = text_embeds.to(device)
@@ -255,9 +248,7 @@ def compute_global_mrr(
                 image_latent_dict[key] = latent.detach().cpu()
 
     if not caption_preds:
-        metrics = {"mrr": 0.0}
-        metrics.update({f"recall@{k}": 0.0 for k in recall_targets})
-        return metrics
+        return 0.0
 
     all_caption_preds = torch.cat(caption_preds, dim=0)
     all_caption_ids = torch.cat(caption_image_ids, dim=0).long()
@@ -276,7 +267,9 @@ def compute_global_mrr(
     if device.type == "cuda":
         all_image_latents = all_image_latents.to(device)
 
+    reciprocal_ranks = []
     num_queries = all_caption_preds.size(0)
+
     for start in range(0, num_queries, chunk_size):
         end = min(start + chunk_size, num_queries)
         chunk_preds = all_caption_preds[start:end]
@@ -293,13 +286,8 @@ def compute_global_mrr(
         ranks = (sim_chunk > correct_scores.unsqueeze(1)).sum(dim=1) + 1
         reciprocal = (1.0 / ranks.float()).cpu()
         reciprocal_ranks.append(reciprocal)
-        for k in recall_targets:
-            recall_hits[k].append((ranks <= k).float().cpu())
 
-    metrics = {"mrr": torch.cat(reciprocal_ranks).mean().item()}
-    for k in recall_targets:
-        metrics[f"recall@{k}"] = torch.cat(recall_hits[k]).mean().item()
-    return metrics
+    return torch.cat(reciprocal_ranks).mean().item()
 
 
 def train_model(
@@ -310,13 +298,9 @@ def train_model(
     epochs: int,
     lr: float,
 ) -> None:
-    # Use AdamW with weight decay for better generalization
-    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     best_val_loss = float("inf")
     best_val_mrr = -1.0
-    best_val_recall1 = -1.0
-    best_val_recall5 = -1.0
-    best_val_recall10 = -1.0
 
     for epoch in range(epochs):
         batch_sampler = getattr(train_loader, "batch_sampler", None)
@@ -368,17 +352,12 @@ def train_model(
                 batch_loss = F.smooth_l1_loss(preds, image_latents)
                 val_reg_total += batch_loss.item() * text_embeds.size(0)
         val_loss = val_reg_total / len(val_loader.dataset)
-        val_metrics = compute_global_mrr(model, val_loader, device)
-        val_mrr = val_metrics["mrr"]
-        val_recall1 = val_metrics["recall@1"]
-        val_recall5 = val_metrics["recall@5"]
-        val_recall10 = val_metrics["recall@10"]
+        val_mrr = compute_global_mrr(model, val_loader, device)
 
         print(
             f"Epoch {epoch+1}: Train Loss = {train_loss:.6f} "
             f"(reg={train_reg:.6f}, nce={train_nce:.6f}) | "
             f"Val Reg = {val_loss:.6f} | Val MRR = {val_mrr:.6f} | "
-            f"Recall@1/5/10 = {val_recall1:.6f}/{val_recall5:.6f}/{val_recall10:.6f} | "
             f"λ_nce = {lambda_nce_weight:.3f}"
         )
 
@@ -394,31 +373,13 @@ def train_model(
             torch.save(model.state_dict(), MODEL_PATH_MRR)
             print(f"  ✓ Saved new best MRR checkpoint ({val_mrr:.6f})")
 
-        if val_recall1 > best_val_recall1:
-            best_val_recall1 = val_recall1
-            Path(MODEL_PATH_RECALL1).parent.mkdir(parents=True, exist_ok=True)
-            torch.save(model.state_dict(), MODEL_PATH_RECALL1)
-            print(f"  ✓ Saved new best Recall@1 checkpoint ({val_recall1:.6f})")
-
-        if val_recall5 > best_val_recall5:
-            best_val_recall5 = val_recall5
-            Path(MODEL_PATH_RECALL5).parent.mkdir(parents=True, exist_ok=True)
-            torch.save(model.state_dict(), MODEL_PATH_RECALL5)
-            print(f"  ✓ Saved new best Recall@5 checkpoint ({val_recall5:.6f})")
-
-        if val_recall10 > best_val_recall10:
-            best_val_recall10 = val_recall10
-            Path(MODEL_PATH_RECALL10).parent.mkdir(parents=True, exist_ok=True)
-            torch.save(model.state_dict(), MODEL_PATH_RECALL10)
-            print(f"  ✓ Saved new best Recall@10 checkpoint ({val_recall10:.6f})")
-
 
 def main():
     seed_everything(RANDOM_SEED)
     print("1. Loading training data...")
     train_data = load_data("data/train/train.npz")
     # NOTE: using filtered data for training
-    # train_data = load_data("data/filtered/train_clip_q0.10_from_raw.npz")
+    # train_data = load_data("data/filtered/train_clean_top50.npz")
     X, y, label = prepare_train_data(train_data)
     print(f"   Captions: {len(X):,} | Images: {label.shape[1]:,}")
 
@@ -452,16 +413,8 @@ def main():
     model.load_state_dict(torch.load(best_eval_path, map_location=DEVICE))
     print(f"   Loaded checkpoint: {best_eval_path}")
     model.eval()
-    final_metrics = compute_global_mrr(model, val_loader, DEVICE)
-    final_mrr = final_metrics["mrr"]
-    final_recall1 = final_metrics["recall@1"]
-    final_recall5 = final_metrics["recall@5"]
-    final_recall10 = final_metrics["recall@10"]
+    final_mrr = compute_global_mrr(model, val_loader, DEVICE)
     print(f"   Final validation MRR: {final_mrr:.6f}")
-    print(
-        "   Final Recall@1/5/10: "
-        f"{final_recall1:.6f}/{final_recall5:.6f}/{final_recall10:.6f}"
-    )
 
     print("\n6. Generating submission from best baseline...")
     test_data = load_data("data/test/test.clean.npz")
@@ -475,12 +428,8 @@ def main():
     )
     print(f"✓ Best-loss model saved to: {MODEL_PATH}")
     print(f"✓ Best-MRR model saved to: {MODEL_PATH_MRR}")
-    print(f"✓ Best-Recall@1 model saved to: {MODEL_PATH_RECALL1}")
-    print(f"✓ Best-Recall@5 model saved to: {MODEL_PATH_RECALL5}")
-    print(f"✓ Best-Recall@10 model saved to: {MODEL_PATH_RECALL10}")
     print(f"✓ Submission saved to: {SUBMISSION_PATH}")
 
 
 if __name__ == "__main__":
     main()
-

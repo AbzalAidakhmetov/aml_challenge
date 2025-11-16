@@ -396,8 +396,8 @@ def run_for_seed(seed: int):
     seed_everything(RANDOM_SEED)
 
     # 3) Load training data
-    print("1. Loading training data...")
-    train_data = load_data("data/train/train.npz")
+    print("1. Loading top50 filtered training data...")
+    train_data = load_data("data/filtered/train_clean_top50.npz")
     X, y, label = prepare_train_data(train_data)
     print(f"   Captions: {len(X):,} | Images: {label.shape[1]:,}")
 
