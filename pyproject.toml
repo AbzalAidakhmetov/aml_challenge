@@ -10,7 +10,11 @@ dependencies = [
     "gdown",
     "pandas",
     "matplotlib",
-    "seaborn"
+    "seaborn",
+    "Pillow",
+    "open-clip-torch",
+    "sentence-transformers",
+    "transformers"
 ]
 
 [tool.uv]
