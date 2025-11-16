@@ -24,6 +24,4 @@ bash setup.sh
 | `src/clip_filter_pairs.py` | OpenCLIP scoring + dataset pruning. |
 | `train_mrr.py` | Residual MLP + InfoNCE baseline, grouped batches, submission export. |
 | `train_mrr_hpp_tunning_RandSearch.py` | Randomized HPO driver (logs to `hpsearch_results.csv`, checkpoints under `models/hpsearch/`). |
-| `src/eval/` | Metrics, retrieval evaluator, visualization helpers. |
-
 
